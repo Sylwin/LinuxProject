@@ -14,7 +14,7 @@ struct timespec buf;
 
 int main(int argc, char* argv[])
 {
-    float time;
+    float time = 0;
     struct timespec t;
     int opt;
 
@@ -47,8 +47,16 @@ int main(int argc, char* argv[])
 
     while(1)
     {
-//        nanosleep(&t, NULL);
-//        printf("I'm still working\n");
+        if(time)
+        {
+            struct timespec currentLocalTime;
+            nanosleep(&t, NULL);
+            clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &currentLocalTime);
+            long curLocalTimeSec = currentLocalTime.tv_sec;
+            long curLocalTimeNSec = currentLocalTime.tv_nsec;
+            printf("I'm still working\nCurrent local time %ld.%.9ld\n\n", curLocalTimeSec, curLocalTimeNSec);
+        }
+
         struct timespec currentTime;
 
         if( (fd = open(fifo, O_RDONLY)) == -1 )
@@ -63,7 +71,7 @@ int main(int argc, char* argv[])
 
         printf("Received:   %ld.%.9ld\n", recSec, recNSec);
         printf("Current:    %ld.%.9ld\n", curSec, curNSec);
-        printf("Difference:          %ld.%.9ld\n", curSec-recSec, curNSec-recNSec);
+        printf("Difference:          %ld.%.9ld\n\n", curSec-recSec, curNSec-recNSec);
    }
 
     close(fd);

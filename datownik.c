@@ -17,17 +17,22 @@ timer_t workTimerId;
 struct itimerspec t2;
 struct timespec t3;
 char fifos[20];
-int files;//[10];
+int files;
 int numOfFiles = 0;
 int fd;
+
+void writingTimeToTimespec(float time, struct timespec *t)
+{
+    t->tv_sec = floor(time);
+    t->tv_nsec = (time - floor(time))*1000000000;
+}
 
 void sigHandler(int signum, siginfo_t *siginfo, void* context)
 {
     //random value between: avarage-deviation and twice the deviation
     float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*deviation*2;
 
-    t2.it_value.tv_sec = floor(timeInterval);
-    t2.it_value.tv_nsec = (timeInterval - floor(timeInterval))*1000000000;
+    writingTimeToTimespec(timeInterval, &t2.it_value);
 
     if (timer_settime(intervalTimerId, 0, &t2, NULL) == -1)
         perror("timer_settime3");
@@ -45,7 +50,7 @@ void sigHandler(int signum, siginfo_t *siginfo, void* context)
 int main(int argc, char* argv[])
 {
     srand(time(NULL));
-    clockid_t clockType;  // = -1;
+    clockid_t clockType;
     struct itimerspec t1;
     float time;
 
@@ -64,20 +69,17 @@ int main(int argc, char* argv[])
         case 'w':
             clockType = CLOCK_REALTIME;
             time = strtof(optarg,NULL);
-            t1.it_value.tv_sec = floor(time);
-            t1.it_value.tv_nsec = (time - floor(time))*1000000000;
+            writingTimeToTimespec(time, &t1.it_value);
             break;
         case 'c':
             clockType = CLOCK_MONOTONIC;
             time = strtof(optarg,NULL);
-            t1.it_value.tv_sec = floor(time);
-            t1.it_value.tv_nsec = (time - floor(time))*1000000000;
+            writingTimeToTimespec(time, &t1.it_value);
             break;
         case 'p':
             clockType = CLOCK_PROCESS_CPUTIME_ID;
             time = strtof(optarg,NULL);
-            t1.it_value.tv_sec = floor(time);
-            t1.it_value.tv_nsec = (time - floor(time))*1000000000;
+            writingTimeToTimespec(time, &t1.it_value);
             break;
         case 'f':
             strcpy(fifos, optarg);
@@ -134,8 +136,7 @@ int main(int argc, char* argv[])
 
 
     float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*deviation*2;
-    t2.it_value.tv_sec = floor(timeInterval);
-    t2.it_value.tv_nsec = (timeInterval - floor(timeInterval))*1000000000;
+    writingTimeToTimespec(timeInterval, &t2.it_value);
 
     if (timer_settime(intervalTimerId, 0, &t2, NULL) == -1)
         perror("timer_settime1");
