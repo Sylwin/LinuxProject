@@ -49,11 +49,22 @@ int main(int argc, char* argv[])
     {
 //        nanosleep(&t, NULL);
 //        printf("I'm still working\n");
+        struct timespec currentTime;
+
         if( (fd = open(fifo, O_RDONLY)) == -1 )
             return 0;
         read(fd, &buf, sizeof(buf));
-        printf("Received: %ld.%.9ld\n", buf.tv_sec, buf.tv_nsec);
-    }
+        long recSec = buf.tv_sec;
+        long recNSec = buf.tv_nsec;
+
+        clock_gettime(CLOCK_REALTIME,&currentTime);
+        long curSec = currentTime.tv_sec;
+        long curNSec = currentTime.tv_nsec;
+
+        printf("Received:   %ld.%.9ld\n", recSec, recNSec);
+        printf("Current:    %ld.%.9ld\n", curSec, curNSec);
+        printf("Difference:          %ld.%.9ld\n", curSec-recSec, curNSec-recNSec);
+   }
 
     close(fd);
 
