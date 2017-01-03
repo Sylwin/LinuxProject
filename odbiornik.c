@@ -9,19 +9,19 @@
 //#include <math.h>
 #include <errno.h>
 #include <string.h>
+#include <poll.h>
 #include "common.h"
 
 char fifo[20];
 int fd;
-struct timespec buf;
 timer_t timerId;
-float controllTime = 0;
+float controlTime = 0;
 struct itimerspec t;
 struct timespec currentLocalTime;
 
 void handler(int sig)
 {
-    writingTimeToTimespec(controllTime, &t.it_value);
+    writingTimeToTimespec(controlTime, &t.it_value);
     if (timer_settime(timerId, 0, &t, NULL) == -1)
         perror("timer_settime1");
 
@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
         switch (opt)
         {
         case 'd':
-            controllTime = strtof(optarg, NULL);
+            controlTime = strtof(optarg, NULL);
             break;
         case ':':
             fprintf(stderr, "%s: option '-%c' requires an argument\n", argv[0], optopt);
@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
     strcpy(fifo, argv[optind]);
     mkfifo(fifo, 0666);
 
-    if(controllTime)
+    if(controlTime)
     {
         //register handler
         struct sigaction sa;
@@ -80,31 +80,51 @@ int main(int argc, char* argv[])
         if (timer_create(CLOCK_REALTIME, &se, &timerId) == -1)
             perror("timer_create");
 
-        writingTimeToTimespec(controllTime, &t.it_value);
+        writingTimeToTimespec(controlTime, &t.it_value);
         if (timer_settime(timerId, 0, &t, NULL) == -1)
             perror("timer_settime1");
     }
 
+    int fd = open(fifo, O_RDONLY);
+
+    struct pollfd fdst;
+    fdst.fd = fd;
+    fdst.events = POLLIN;
+    fdst.revents = 0;
+
+    int res;
+
     while(1)
-    {   pause();
-//        struct timespec currentTime;
-//
-//        if( (fd = open(fifo, O_RDONLY)) == -1 )
-//            return 0;
-//        read(fd, &buf, sizeof(buf));
-//        long recSec = buf.tv_sec;
-//        long recNSec = buf.tv_nsec;
-//
-//        clock_gettime(CLOCK_REALTIME,&currentTime);
-//        long curSec = currentTime.tv_sec;
-//        long curNSec = currentTime.tv_nsec;
-//
-//        printf("Received:   %ld.%.9ld\n", recSec, recNSec);
-//        printf("Current:    %ld.%.9ld\n", curSec, curNSec);
-//        printf("Difference:          %ld.%.9ld\n\n", curSec-recSec, curNSec-recNSec);
+    {
+        //pause();
+        res = poll(&fdst,1,0);
+
+        if(fdst.revents & POLLIN)
+        {
+//            if((fdst.revents & POLLERR) || (fdst.revents & POLLNVAL))
+//                break;
+            struct timespec buf;
+            struct timespec currentTime;
+            read(fdst.fd, &buf, sizeof(buf));
+            long recSec = buf.tv_sec;
+            long recNSec = buf.tv_nsec;
+
+            clock_gettime(CLOCK_REALTIME,&currentTime);
+            long curSec = currentTime.tv_sec;
+            long curNSec = currentTime.tv_nsec;
+
+            printf("Received:   %ld.%.9ld\n", recSec, recNSec);
+            printf("Current:    %ld.%.9ld\n", curSec, curNSec);
+            printf("Difference:          %ld.%.9ld\n\n", curSec-recSec, curNSec-recNSec);
+        }
+        else
+        {
+            if((fdst.revents & POLLERR) || (fdst.revents & POLLNVAL))
+                break;
+        }
     }
 
-   // close(fd);
+    close(fd);
 
     return 0;
 }
