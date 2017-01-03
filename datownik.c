@@ -3,12 +3,13 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <signal.h>
-#include <time.h>
-#include <math.h>
+//#include <time.h>
+//#include <math.h>
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include "common.h"
 
 float avgInterval = 0;
 float deviation = 0;
@@ -21,28 +22,21 @@ int files;
 int numOfFiles = 0;
 int fd;
 
-void writingTimeToTimespec(float time, struct timespec *t)
+void sigHandler(int signum)
 {
-    t->tv_sec = floor(time);
-    t->tv_nsec = (time - floor(time))*1000000000;
-}
-
-void sigHandler(int signum, siginfo_t *siginfo, void* context)
-{
-    //random value between: avarage-deviation and twice the deviation
-    float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*deviation*2;
-
+    //random value between: avarage-deviation and avgInterval+deviation
+    float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*(deviation+avgInterval);
     writingTimeToTimespec(timeInterval, &t2.it_value);
 
     if (timer_settime(intervalTimerId, 0, &t2, NULL) == -1)
         perror("timer_settime3");
 
-    mkfifo(fifos, 0666);
+   // mkfifo(fifos, 0666);
     fd = open(fifos, O_WRONLY);
 
     clock_gettime(CLOCK_REALTIME,&t3);
     if( write(fd, &t3, sizeof(t3)) == -1 )
-        perror("writing to stdout");
+        perror("writing to fifo");
 
     close(fd);
 }
@@ -115,32 +109,28 @@ int main(int argc, char* argv[])
 
 //    printf("pid: %d\n", getpid());
 
+    //register handler
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));//struct sigaction));
-    sa.sa_flags = SA_SIGINFO;
-    sa.sa_sigaction = &sigHandler;
+    sa.sa_handler = &sigHandler;
     sigemptyset(&sa.sa_mask);   //no signal would be blocked
     if (sigaction(SIGALRM, &sa, NULL) == -1)
         perror("sigaction");
 
+    //create timer
     struct sigevent se;
     memset(&se, 0, sizeof(se));//struct sigevent));
-    se.sigev_notify = SIGEV_SIGNAL;
-    se.sigev_signo = SIGALRM;
-    se.sigev_value.sival_ptr = &intervalTimerId;
     se.sigev_notify = SIGEV_SIGNAL;
     se.sigev_signo = SIGALRM;
     se.sigev_value.sival_ptr = &intervalTimerId;
     if (timer_create(CLOCK_REALTIME, &se, &intervalTimerId) == -1)
         perror("timer_create");
 
-
-    float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*deviation*2;
+    float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*(deviation+avgInterval);
     writingTimeToTimespec(timeInterval, &t2.it_value);
 
     if (timer_settime(intervalTimerId, 0, &t2, NULL) == -1)
         perror("timer_settime1");
-
 
     struct sigevent sevProgramEnd;
     sevProgramEnd.sigev_notify = SIGEV_SIGNAL;
