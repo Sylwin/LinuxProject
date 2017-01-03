@@ -10,7 +10,7 @@
 
 char fifo[20];
 int fd;
-char buf[512];
+struct timespec buf;
 
 int main(int argc, char* argv[])
 {
@@ -47,12 +47,12 @@ int main(int argc, char* argv[])
 
     while(1)
     {
-        nanosleep(&t, NULL);
-        printf("I'm still working\n");
+//        nanosleep(&t, NULL);
+//        printf("I'm still working\n");
         if( (fd = open(fifo, O_RDONLY)) == -1 )
             return 0;
-        read(fd, buf, sizeof(buf));
-        printf("Received: %s\n", buf);
+        read(fd, &buf, sizeof(buf));
+        printf("Received: %ld.%.9ld\n", buf.tv_sec, buf.tv_nsec);
     }
 
     close(fd);
