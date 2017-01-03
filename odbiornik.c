@@ -49,6 +49,10 @@ int main(int argc, char* argv[])
     {
         nanosleep(&t, NULL);
         printf("I'm still working\n");
+        if( (fd = open(fifo, O_RDONLY)) == -1 )
+            return 0;
+        read(fd, buf, sizeof(buf));
+        printf("Received: %s\n", buf);
     }
 
     close(fd);
