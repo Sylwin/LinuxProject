@@ -148,5 +148,7 @@ int main(int argc, char* argv[])
         pause();
     }
 
+
+    close(fd);
     return 0;
 }

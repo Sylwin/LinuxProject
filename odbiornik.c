@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
             }
             else
             {
-                if((fdst.revents & POLLERR) || (fdst.revents & POLLNVAL))
+                if( fdst.revents & POLLNVAL )
                     break;
             }
         }
