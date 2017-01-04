@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
             perror("timer_settime1");
     }
 
-    int fd = open(fifo, O_RDONLY);
+    int fd = open(fifo, O_RDWR);
 
     struct pollfd fdst;
     fdst.fd = fd;
@@ -99,31 +99,33 @@ int main(int argc, char* argv[])
         //pause();
         res = poll(&fdst,1,0);
 
-        if(fdst.revents & POLLIN)
+        if( res == 1)
         {
-//            if((fdst.revents & POLLERR) || (fdst.revents & POLLNVAL))
-//                break;
-            struct timespec buf;
-            struct timespec currentTime;
-            read(fdst.fd, &buf, sizeof(buf));
-            long recSec = buf.tv_sec;
-            long recNSec = buf.tv_nsec;
+            if(fdst.revents & POLLIN)
+            {
+//              if((fdst.revents & POLLERR) || (fdst.revents & POLLNVAL))
+//                      break;
+                struct timespec buf;
+                struct timespec currentTime;
+                read(fdst.fd, &buf, sizeof(buf));
+                long recSec = buf.tv_sec;
+                long recNSec = buf.tv_nsec;
 
-            clock_gettime(CLOCK_REALTIME,&currentTime);
-            long curSec = currentTime.tv_sec;
-            long curNSec = currentTime.tv_nsec;
+                clock_gettime(CLOCK_REALTIME,&currentTime);
+                long curSec = currentTime.tv_sec;
+                long curNSec = currentTime.tv_nsec;
 
-            printf("Received:   %ld.%.9ld\n", recSec, recNSec);
-            printf("Current:    %ld.%.9ld\n", curSec, curNSec);
-            printf("Difference:          %ld.%.9ld\n\n", curSec-recSec, curNSec-recNSec);
-        }
-        else
-        {
-            if((fdst.revents & POLLERR) || (fdst.revents & POLLNVAL))
-                break;
+                printf("Received:   %ld.%.9ld\n", recSec, recNSec);
+                printf("Current:    %ld.%.9ld\n", curSec, curNSec);
+                printf("Difference:          %ld.%.9ld\n\n", curSec-recSec, curNSec-recNSec);
+            }
+            else
+            {
+                if((fdst.revents & POLLERR) || (fdst.revents & POLLNVAL))
+                    break;
+            }
         }
     }
-
     close(fd);
 
     return 0;
