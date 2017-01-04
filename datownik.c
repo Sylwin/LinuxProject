@@ -17,7 +17,8 @@ timer_t intervalTimerId;
 timer_t workTimerId;
 struct itimerspec t2;
 struct timespec t3;
-char fifos[20];
+char* fifos[20];
+int numOfFifos = 0;
 int files;
 int numOfFiles = 0;
 int fd;
@@ -31,24 +32,46 @@ void sigHandler(int signum)
     if (timer_settime(intervalTimerId, 0, &t2, NULL) == -1)
         perror("timer_settime3");
 
-   // mkfifo(fifos, 0666);
-    fd = open(fifos, O_WRONLY);
+    if(numOfFifos)
+    {
+        for(int i = 0 ; i < numOfFifos; i++)
+        {
+            mkfifo(&fifos[i], 0666);
+            fd = open(&fifos[i], O_WRONLY);// | O_NONBLOCK);
 
-    clock_gettime(CLOCK_REALTIME,&t3);
-    if( write(fd, &t3, sizeof(t3)) == -1 )
-        perror("writing to fifo");
+            clock_gettime(CLOCK_REALTIME,&t3);
+            if( write(fd, &t3, sizeof(t3)) == -1 )
+                perror("writing to fifo");
 
-    close(fd);
+            close(fd);
+        }
+    }
+   // if(numOfFiles)
+   // {
+   //     for(int i = 0 ; i < numOfFiles; i++)
+   //     {
+   //         mkfifo(files[i], 0666);
+   //         fd = open(files[i], O_WRONLY);// | O_NONBLOCK);
+
+   //         clock_gettime(CLOCK_REALTIME,&t3);
+   //         if( write(fd, &t3, sizeof(t3)) == -1 )
+   //             perror("writing to fifo");
+
+   //         close(fd);
+   //     }
+
+   // }
 }
 
 int main(int argc, char* argv[])
 {
     srand(time(NULL));
-    clockid_t clockType;
+    clockid_t clockType = -1;
     struct itimerspec t1;
     float time;
 
     int opt;
+    int index;
 
     while ((opt = getopt(argc, argv, ":m:d:w:c:p:f:s:")) != -1)
     {
@@ -76,7 +99,14 @@ int main(int argc, char* argv[])
             writingTimeToTimespec(time, &t1.it_value);
             break;
         case 'f':
-            strcpy(fifos, optarg);
+           // optind--;
+           // for( ;optind < argc && *argv[optind] != '-'; optind++){
+           //     strcpy(fifos[optind],optarg);
+           //     numOfFifos++;
+           //     printf("%d\n", numOfFifos);
+           // }
+            strcpy(&fifos[numOfFifos], optarg);
+            numOfFifos++;
             break;
         case 's':
             //optind--;
@@ -85,6 +115,7 @@ int main(int argc, char* argv[])
             //    numOfFiles++;
             //}
             files = atoi(optarg);
+            numOfFiles++;
             break;
         case ':':
             fprintf(stderr, "%s: option '-%c' requires an argument\n", argv[0], optopt);
@@ -95,6 +126,12 @@ int main(int argc, char* argv[])
             break;
         }
     }
+
+    for(int i = 0; i < numOfFifos; i++)
+        printf("fifo: %s\n", &fifos[i]);
+
+    //for(int i = 0; i < numOfFiles; i++)
+      //  printf("fifo: %s\n", &files[i]);
 
     if(argc < 3)
     {
@@ -124,7 +161,7 @@ int main(int argc, char* argv[])
     se.sigev_signo = SIGALRM;
     se.sigev_value.sival_ptr = &intervalTimerId;
     if (timer_create(CLOCK_REALTIME, &se, &intervalTimerId) == -1)
-        perror("timer_create");
+        perror("timer_create1");
 
     float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*(deviation+avgInterval);
     writingTimeToTimespec(timeInterval, &t2.it_value);
@@ -132,15 +169,17 @@ int main(int argc, char* argv[])
     if (timer_settime(intervalTimerId, 0, &t2, NULL) == -1)
         perror("timer_settime1");
 
-    struct sigevent sevProgramEnd;
-    sevProgramEnd.sigev_notify = SIGEV_SIGNAL;
-    sevProgramEnd.sigev_signo = SIGKILL;
-    sevProgramEnd.sigev_value.sival_ptr = &workTimerId;
-    if (timer_create(clockType, &sevProgramEnd, &workTimerId) == -1)
-        perror("timer_create");
-    if (timer_settime(workTimerId, 0, &t1, NULL) == -1)
-        perror("timer_settime2");
-
+    if(clockType != -1)
+    {
+        struct sigevent sevProgramEnd;
+        sevProgramEnd.sigev_notify = SIGEV_SIGNAL;
+        sevProgramEnd.sigev_signo = SIGKILL;
+        sevProgramEnd.sigev_value.sival_ptr = &workTimerId;
+        if (timer_create(clockType, &sevProgramEnd, &workTimerId) == -1)
+            perror("timer_create2");
+        if (timer_settime(workTimerId, 0, &t1, NULL) == -1)
+            perror("timer_settime2");
+    }
     //alarm(3);
     while(1)
     {

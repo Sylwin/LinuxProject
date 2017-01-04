@@ -28,7 +28,7 @@ void handler(int sig)
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &currentLocalTime);
     long curLocalTimeSec = currentLocalTime.tv_sec;
     long curLocalTimeNSec = currentLocalTime.tv_nsec;
-    printf("I'm still working\nCurrent local time %ld.%.9ld\n\n", curLocalTimeSec, curLocalTimeNSec);
+    printf("I'm still working\nCurrent local time: %ld.%.9ld\n\n", curLocalTimeSec, curLocalTimeNSec);
 }
 
 int main(int argc, char* argv[])
@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
             perror("timer_settime1");
     }
 
-    int fd = open(fifo, O_RDWR);
+    int fd = open(fifo, O_RDWR); //O_RDONLY);
 
     struct pollfd fdst;
     fdst.fd = fd;
