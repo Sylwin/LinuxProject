@@ -134,12 +134,12 @@ int main(int argc, char* argv[])
     fds.events = POLLIN;
     fds.revents = 0;
 
-    //raise(SIGALRM);
+    raise(SIGALRM);
 
     int res;
     while(1)
     {
-        raise(SIGALRM);
+       // raise(SIGALRM);
         res = poll(&fds,1,-1);
         if(fds.revents & POLLIN)
         {
@@ -151,8 +151,15 @@ int main(int argc, char* argv[])
                 {
                     int result = write(fifos[i].fileDescriptor, &buffer,sizeof(buffer));
                     if(result == -1 && errno == EAGAIN)
+                    {
                         fifos[i].isFull = true;
+                        close(fds.fd);
+                    }
                 }
+              //  if(fifos[i].isFull)
+              //  {
+              //      close(fds.fd);
+              //  }
             }
         }
         else
