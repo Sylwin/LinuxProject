@@ -5,12 +5,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
-//#include <time.h>
-//#include <math.h>
+#include <time.h>
+#include <math.h>
 #include <errno.h>
 #include <string.h>
 #include <poll.h>
-#include "common.h"
 
 char fifo[20];
 int fd;
@@ -21,7 +20,8 @@ struct timespec currentLocalTime;
 
 void handler(int sig)
 {
-    writingTimeToTimespec(controlTime, &t.it_value);
+    t.it_value.tv_sec = floor(controlTime);
+    t.it_value.tv_nsec = (controlTime - floor(controlTime))*1000000000;
     if (timer_settime(timerId, 0, &t, NULL) == -1)
         perror("timer_settime1");
 
@@ -59,7 +59,6 @@ int main(int argc, char* argv[])
     }
 
     strcpy(fifo, argv[optind]);
-    mkfifo(fifo, 0666);
 
     if(controlTime)
     {
@@ -80,7 +79,9 @@ int main(int argc, char* argv[])
         if (timer_create(CLOCK_REALTIME, &se, &timerId) == -1)
             perror("timer_create");
 
-        writingTimeToTimespec(controlTime, &t.it_value);
+        //writingTimeToTimespec(controlTime, &t.it_value);
+        t.it_value.tv_sec = floor(controlTime);
+        t.it_value.tv_nsec = (controlTime - floor(controlTime))*1000000000;
         if (timer_settime(timerId, 0, &t, NULL) == -1)
             perror("timer_settime1");
     }
@@ -115,9 +116,9 @@ int main(int argc, char* argv[])
                 long curSec = currentTime.tv_sec;
                 long curNSec = currentTime.tv_nsec;
 
-                printf("Received:   %ld.%.9ld\n", recSec, recNSec);
-                printf("Current:    %ld.%.9ld\n", curSec, curNSec);
-                printf("Difference:          %ld.%.9ld\n\n", curSec-recSec, curNSec-recNSec);
+                //printf("Received:   %ld.%.9ld\n", recSec, recNSec);
+                //printf("Current:    %ld.%.9ld\n", curSec, curNSec);
+                printf("Difference:         %ld.%.9ld\n\n", curSec-recSec, curNSec-recNSec);
             }
             else
             {

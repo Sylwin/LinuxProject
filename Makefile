@@ -1,18 +1,13 @@
-FLAGS = -L./ -Wl,-rpath=./ -lCommon
+all: datownik.o odbiornik.o powielacz.o
 
-all: datownik.o odbiornik.o powielacz.o libCommon.so
+datownik.o: datownik.c
+	gcc datownik.c -Wall -lrt -lm -o datownik.o
 
-datownik.o: datownik.c libCommon.so
-	gcc datownik.c -lrt -o datownik.o ${FLAGS}
+odbiornik.o: odbiornik.c
+	gcc odbiornik.c -Wall -lrt -lm -o odbiornik.o
 
-odbiornik.o: odbiornik.c libCommon.so
-	gcc odbiornik.c -lrt -o odbiornik.o ${FLAGS}
-
-powielacz.o: powielacz.c libCommon.so
-	gcc powielacz.c -lm -o powielacz.o
-
-libCommon.so : common.c
-	gcc -o libCommon.so common.c -fPIC --shared -lm
+powielacz.o: powielacz.c
+	gcc powielacz.c -Wall -lm -o powielacz.o
 
 clean:
-	rm -rf *.o *.so
+	rm -rf *.o

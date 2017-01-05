@@ -24,6 +24,7 @@ char filesNamePattern[20];
 char diagnosticPath[20];
 int numOfFifos = 0;
 struct Fifo* fifos;
+int res;
 
 void beginHandler(int sig)
 {
@@ -48,17 +49,17 @@ void beginHandler(int sig)
 
         if( !fifos[i].isOpened )
         {
-            printf("%s opening - ", fifos[i].path);
+            printf("%s ", fifos[i].path);
             int fd = open(fifos[i].path, O_RDWR | O_NONBLOCK);
             if(fd != -1)
             {
-                printf("succes.\n");
+                printf("opened\n");
                 fifos[i].isOpened = true;
                 fifos[i].fileDescriptor = fd;
             }
             else
             {
-                printf("failed.\n");
+                printf("failed\n");
             }
             continue;
         }
@@ -130,21 +131,22 @@ int main(int argc, char* argv[])
         perror("sigaction");
 
     struct pollfd fds;
-    fds.fd = 0;
+    fds.fd = 0; //stdin
     fds.events = POLLIN;
     fds.revents = 0;
 
     raise(SIGALRM);
 
-    int res;
+   // int res;
     while(1)
     {
        // raise(SIGALRM);
-        res = poll(&fds,1,-1);
+        res = poll(&fds,1,-1);          // -1 -> infinite timeout
         if(fds.revents & POLLIN)
         {
             struct timespec buffer;
             read(fds.fd,&buffer,sizeof(buffer));
+            printf("%ld.%ld\n", buffer.tv_sec, buffer.tv_nsec);
             for(int i = 0; i < numOfFifos; i++)
             {
                 if(fifos[i].isOpened)

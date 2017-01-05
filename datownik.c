@@ -3,13 +3,12 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <signal.h>
-//#include <time.h>
-//#include <math.h>
+#include <time.h>
+#include <math.h>
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "common.h"
 
 float avgInterval = 0;
 float deviation = 0;
@@ -19,24 +18,28 @@ struct itimerspec t2;
 struct timespec t3;
 char* fifos[20];
 int numOfFifos = 0;
-int files;
+int files[10];
 int numOfFiles = 0;
 int fd;
-
+int fs;
+//da
 void sigHandler(int signum)
 {
     //random value between: avarage-deviation and avgInterval+deviation
     float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*(deviation+avgInterval);
-    writingTimeToTimespec(timeInterval, &t2.it_value);
+
+    t2.it_value.tv_sec = floor(timeInterval);
+    t2.it_value.tv_nsec = (timeInterval - floor(timeInterval))*1000000000;
 
     if (timer_settime(intervalTimerId, 0, &t2, NULL) == -1)
         perror("timer_settime3");
 
-    if(numOfFifos)
+    clock_gettime(CLOCK_REALTIME, &t3);
+    if(numOfFifos > 0) // || (numOfFiles > 0))
     {
         for(int i = 0 ; i < numOfFifos; i++)
         {
-            mkfifo(&fifos[i], 0666);
+           // mkfifo(&fifos[i], 0666);
             fd = open(&fifos[i], O_WRONLY | O_NONBLOCK);
 
             clock_gettime(CLOCK_REALTIME,&t3);
@@ -45,22 +48,19 @@ void sigHandler(int signum)
 
             close(fd);
         }
+        //for(int i = 0 ; i < numOfFiles; i++)
+        //{
+        //    mkfifo(&files[i], 0666);
+        //    //fs = open(&files[i], O_WRONLY | O_NONBLOCK);
+        //    fs = &files[i];
+        //    clock_gettime(CLOCK_REALTIME,&t3);
+        //    write(fs, &t3, sizeof(t3));// == -1 )
+        //     //   perror("writing to fifo");
+
+        //    close(fs);
+        //}
     }
-   // if(numOfFiles)
-   // {
-   //     for(int i = 0 ; i < numOfFiles; i++)
-   //     {
-   //         mkfifo(files[i], 0666);
-   //         fd = open(files[i], O_WRONLY);// | O_NONBLOCK);
-
-   //         clock_gettime(CLOCK_REALTIME,&t3);
-   //         if( write(fd, &t3, sizeof(t3)) == -1 )
-   //             perror("writing to fifo");
-
-   //         close(fd);
-   //     }
-
-   // }
+    write(files[0], &t3, sizeof(t3));
 }
 
 int main(int argc, char* argv[])
@@ -71,7 +71,6 @@ int main(int argc, char* argv[])
     float time;
 
     int opt;
-    int index;
 
     while ((opt = getopt(argc, argv, ":m:d:w:c:p:f:s:")) != -1)
     {
@@ -86,17 +85,20 @@ int main(int argc, char* argv[])
         case 'w':
             clockType = CLOCK_REALTIME;
             time = strtof(optarg,NULL);
-            writingTimeToTimespec(time, &t1.it_value);
+            t1.it_value.tv_sec = floor(time);
+            t1.it_value.tv_nsec = (time - floor(time))*1000000000;
             break;
         case 'c':
             clockType = CLOCK_MONOTONIC;
             time = strtof(optarg,NULL);
-            writingTimeToTimespec(time, &t1.it_value);
+            t1.it_value.tv_sec = floor(time);
+            t1.it_value.tv_nsec = (time - floor(time))*1000000000;
             break;
         case 'p':
             clockType = CLOCK_PROCESS_CPUTIME_ID;
             time = strtof(optarg,NULL);
-            writingTimeToTimespec(time, &t1.it_value);
+            t1.it_value.tv_sec = floor(time);
+            t1.it_value.tv_nsec = (time - floor(time))*1000000000;
             break;
         case 'f':
             //optind--;
@@ -110,7 +112,7 @@ int main(int argc, char* argv[])
             //for( ;optind < argc && *argv[optind] != '-'; optind++){
             //    files[numOfFiles++] = atoi(optarg);
             //}
-            files = atoi(optarg);
+            files[numOfFiles++] = atoi(optarg);
             break;
         case ':':
             fprintf(stderr, "%s: option '-%c' requires an argument\n", argv[0], optopt);
@@ -125,8 +127,8 @@ int main(int argc, char* argv[])
     for(int i = 0; i < numOfFifos; i++)
         printf("fifo: %s\n", &fifos[i]);
 
-    //for(int i = 0; i < numOfFiles; i++)
-      //  printf("fifo: %s\n", &files[i]);
+    for(int i = 0; i < numOfFiles; i++)
+        printf("files: %d\n", files[i]);
 
     if(argc < 3)
     {
@@ -157,7 +159,8 @@ int main(int argc, char* argv[])
         perror("timer_create1");
 
     float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*(deviation+avgInterval);
-    writingTimeToTimespec(timeInterval, &t2.it_value);
+    t2.it_value.tv_sec = floor(timeInterval);
+    t2.it_value.tv_nsec = (timeInterval - floor(timeInterval))*1000000000;
 
     if (timer_settime(intervalTimerId, 0, &t2, NULL) == -1)
         perror("timer_settime1");
