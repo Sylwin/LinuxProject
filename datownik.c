@@ -37,11 +37,11 @@ void sigHandler(int signum)
         for(int i = 0 ; i < numOfFifos; i++)
         {
             mkfifo(&fifos[i], 0666);
-            fd = open(&fifos[i], O_WRONLY);// | O_NONBLOCK);
+            fd = open(&fifos[i], O_WRONLY | O_NONBLOCK);
 
             clock_gettime(CLOCK_REALTIME,&t3);
-            if( write(fd, &t3, sizeof(t3)) == -1 )
-                perror("writing to fifo");
+            write(fd, &t3, sizeof(t3));// == -1 )
+             //   perror("writing to fifo");
 
             close(fd);
         }
@@ -99,23 +99,18 @@ int main(int argc, char* argv[])
             writingTimeToTimespec(time, &t1.it_value);
             break;
         case 'f':
-           // optind--;
-           // for( ;optind < argc && *argv[optind] != '-'; optind++){
-           //     strcpy(fifos[optind],optarg);
-           //     numOfFifos++;
-           //     printf("%d\n", numOfFifos);
-           // }
-            strcpy(&fifos[numOfFifos], optarg);
-            numOfFifos++;
+            //optind--;
+            //for( ;optind < argc && *argv[optind] != '-'; optind++){
+            //    strcpy(&fifos[numOfFifos++],optarg);
+            //}
+            strcpy(&fifos[numOfFifos++], optarg);
             break;
         case 's':
             //optind--;
             //for( ;optind < argc && *argv[optind] != '-'; optind++){
-            //    files[optind] = atoi(optarg);
-            //    numOfFiles++;
+            //    files[numOfFiles++] = atoi(optarg);
             //}
             files = atoi(optarg);
-            numOfFiles++;
             break;
         case ':':
             fprintf(stderr, "%s: option '-%c' requires an argument\n", argv[0], optopt);
@@ -144,11 +139,9 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-//    printf("pid: %d\n", getpid());
-
     //register handler
     struct sigaction sa;
-    memset(&sa, 0, sizeof(sa));//struct sigaction));
+    memset(&sa, 0, sizeof(sa));
     sa.sa_handler = &sigHandler;
     sigemptyset(&sa.sa_mask);   //no signal would be blocked
     if (sigaction(SIGALRM, &sa, NULL) == -1)
@@ -156,7 +149,7 @@ int main(int argc, char* argv[])
 
     //create timer
     struct sigevent se;
-    memset(&se, 0, sizeof(se));//struct sigevent));
+    memset(&se, 0, sizeof(se));
     se.sigev_notify = SIGEV_SIGNAL;
     se.sigev_signo = SIGALRM;
     se.sigev_value.sival_ptr = &intervalTimerId;
@@ -180,7 +173,7 @@ int main(int argc, char* argv[])
         if (timer_settime(workTimerId, 0, &t1, NULL) == -1)
             perror("timer_settime2");
     }
-    //alarm(3);
+
     while(1)
     {
         //waiting for signal
