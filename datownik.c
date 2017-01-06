@@ -21,8 +21,7 @@ int numOfFifos = 0;
 int files[10];
 int numOfFiles = 0;
 int fd;
-int fs;
-//da
+
 void sigHandler(int signum)
 {
     //random value between: avarage-deviation and avgInterval+deviation
@@ -35,11 +34,11 @@ void sigHandler(int signum)
         perror("timer_settime3");
 
     clock_gettime(CLOCK_REALTIME, &t3);
-    if(numOfFifos > 0) // || (numOfFiles > 0))
+    if((numOfFifos > 0) || (numOfFiles > 0))
     {
         for(int i = 0 ; i < numOfFifos; i++)
         {
-           // mkfifo(&fifos[i], 0666);
+            //mkfifo(&fifos[i], 0666);
             fd = open(&fifos[i], O_WRONLY | O_NONBLOCK);
 
             clock_gettime(CLOCK_REALTIME,&t3);
@@ -48,19 +47,12 @@ void sigHandler(int signum)
 
             close(fd);
         }
-        //for(int i = 0 ; i < numOfFiles; i++)
-        //{
-        //    mkfifo(&files[i], 0666);
-        //    //fs = open(&files[i], O_WRONLY | O_NONBLOCK);
-        //    fs = &files[i];
-        //    clock_gettime(CLOCK_REALTIME,&t3);
-        //    write(fs, &t3, sizeof(t3));// == -1 )
-        //     //   perror("writing to fifo");
-
-        //    close(fs);
-        //}
+        for(int i = 0 ; i < numOfFiles; i++)
+        {
+            write(files[i], &t3, sizeof(t3));// == -1 )
+             //   perror("writing to fifo");
+        }
     }
-    write(files[0], &t3, sizeof(t3));
 }
 
 int main(int argc, char* argv[])
@@ -101,17 +93,9 @@ int main(int argc, char* argv[])
             t1.it_value.tv_nsec = (time - floor(time))*1000000000;
             break;
         case 'f':
-            //optind--;
-            //for( ;optind < argc && *argv[optind] != '-'; optind++){
-            //    strcpy(&fifos[numOfFifos++],optarg);
-            //}
             strcpy(&fifos[numOfFifos++], optarg);
             break;
         case 's':
-            //optind--;
-            //for( ;optind < argc && *argv[optind] != '-'; optind++){
-            //    files[numOfFiles++] = atoi(optarg);
-            //}
             files[numOfFiles++] = atoi(optarg);
             break;
         case ':':
@@ -183,7 +167,6 @@ int main(int argc, char* argv[])
         pause();
     }
 
-
-    close(fd);
+    //close(fd);
     return 0;
 }

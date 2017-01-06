@@ -25,6 +25,7 @@ char diagnosticPath[20];
 int numOfFifos = 0;
 struct Fifo* fifos;
 int res;
+int d;
 
 void beginHandler(int sig)
 {
@@ -43,7 +44,7 @@ void beginHandler(int sig)
         }
         else if(!(sb.st_mode & S_IROTH))
         {
-            printf("%s does not open for reading\n", fifos[i].path);
+            printf("%s is not open for reading\n", fifos[i].path);
             continue;
         }
 
@@ -108,20 +109,19 @@ int main(int argc, char* argv[])
 
     if( strlen(diagnosticPath) != 0 )
     {
+        printf("stdout in '%s' file\n", diagnosticPath);
+        //close(1);
         int fw = open(diagnosticPath, O_WRONLY | O_CREAT, 0666);
         // replace standard output with output file
-        dup2(fw, 1);
-        //close(fw);
-        //printf("lol");
+        if( dup2(fw, 1) == -1 )
+            perror("dup");
     }
 
     fifos = (struct Fifo*)malloc(numOfFifos * sizeof(struct Fifo));
 
-
-    for(int i = 0; i < numOfFifos;i++)
+    for(int i = 0; i < numOfFifos+1;i++)
     {
-      //  printf("%s\n", diagnosticPath);
-        sprintf(fifos[i].path,"%s%d",filesNamePattern,i);
+        sprintf(fifos[i].path,"%s%d",filesNamePattern,i + 1);
         fifos[i].isOpened = false;
         fifos[i].isFull = false;
     }
