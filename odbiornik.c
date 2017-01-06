@@ -88,27 +88,26 @@ int main(int argc, char* argv[])
 
     int fd = open(fifo, O_RDWR); //O_RDONLY);
 
-    struct pollfd fdst;
-    fdst.fd = fd;
-    fdst.events = POLLIN;
-    fdst.revents = 0;
+    struct pollfd fs;
+    fs.fd = fd;
+    fs.events = POLLIN;
+    fs.revents = 0;
 
     int res;
 
     while(1)
     {
         //pause();
-        res = poll(&fdst,1,0);
-
+        res = poll(&fs,1,0);
         if( res == 1)
         {
-            if(fdst.revents & POLLIN)
+            if(fs.revents & POLLIN)
             {
 //              if((fdst.revents & POLLERR) || (fdst.revents & POLLNVAL))
 //                      break;
                 struct timespec buf;
                 struct timespec currentTime;
-                read(fdst.fd, &buf, sizeof(buf));
+                read(fs.fd, &buf, sizeof(buf));
                 long recSec = buf.tv_sec;
                 long recNSec = buf.tv_nsec;
 
@@ -122,7 +121,7 @@ int main(int argc, char* argv[])
             }
             else
             {
-                if( fdst.revents & POLLNVAL )
+                if( fs.revents & POLLNVAL )
                     break;
             }
         }

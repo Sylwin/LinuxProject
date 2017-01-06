@@ -108,8 +108,11 @@ int main(int argc, char* argv[])
 
     if( strlen(diagnosticPath) != 0 )
     {
-        int desc = open(diagnosticPath, O_WRONLY | O_CREAT, 0666);
-        dup2(desc, 1);
+        int fw = open(diagnosticPath, O_WRONLY | O_CREAT, 0666);
+        // replace standard output with output file
+        dup2(fw, 1);
+        //close(fw);
+        //printf("lol");
     }
 
     fifos = (struct Fifo*)malloc(numOfFifos * sizeof(struct Fifo));
