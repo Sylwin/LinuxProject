@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
         struct stat sb;
         if (stat(fifos[i].path, &sb) == -1)
         {
-            printf("%s does not exist.\n", fifos[i].path);
+            printf("%s does not exist\n", fifos[i].path);
             closed++;
             if( closed == numOfFifos )
                 return 0;
@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
         }
         if(!S_ISFIFO(sb.st_mode))
         {
-            printf("%s is not fifo.\n", fifos[i].path);
+            printf("%s is not fifo\n", fifos[i].path);
             closed++;
             if( closed == numOfFifos )
                 return 0;
