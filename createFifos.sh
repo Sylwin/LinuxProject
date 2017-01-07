@@ -1,5 +1,7 @@
 rm -rf fifos
 mkdir fifos
 cd fifos
-mkfifo $(seq 0 $1)
+for f in $(seq 0 $1); do
+    mkfifo fifo$f
+done
 cd ..
