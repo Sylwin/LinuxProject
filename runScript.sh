@@ -1,5 +1,3 @@
-# Powielanie wszystkich wpisów datowika do zadanych powielaczowi fifo
-
 rm -rf fifos logs
 bash createFifos.sh 5
 
