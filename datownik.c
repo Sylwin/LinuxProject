@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
     srand(time(NULL));
     clockid_t clockType = -1;
     struct itimerspec workTime;
-    float time;
+    float time = 0;
     int opt;
 
     while ((opt = getopt(argc, argv, ":m:d:w:c:p:f:s:")) != -1)
@@ -113,17 +113,23 @@ int main(int argc, char* argv[])
    // for(int i = 0; i < numOfFiles; i++)
    //     printf("files: %d\n", files[i]);
 
-    if(argc < 3)
+   // if(argc < 3)
+   // {
+   //     printf("Usage : %s -mFLOAT [-dFLOAT] [-w/c/pFLOAT] -fSTRING -sINT\n",argv[0]);
+   //     return 0;
+   // }
+
+    if(avgInterval <= 0 || deviation < 0 || time < 0)
     {
-        printf("Usage : %s -mFLOAT [-dFLOAT] -w/c/pFLOAT -fSTRING -sINT\n",argv[0]);
-        return 0;
-    }
-    if(avgInterval < 0 || deviation < 0 || time < 0)
-    {
-        printf("Usage : %s -mFLOAT [-dFLOAT] -w/c/pFLOAT -fSTRING -sINT\n",argv[0]);
+        printf("Usage : %s -mFLOAT [-dFLOAT] [-w/c/pFLOAT] -fSTRING -sINT\n",argv[0]);
         if(avgInterval < 0) printf("-m value must be positive\n");
         if(deviation < 0 )  printf("-d value must be positive\n");
         if(time < 0)        printf("-w/c/p value must be positive\n");
+        return 0;
+    }
+    if(deviation >= avgInterval)
+    {
+        printf("Deviation must be bigger than average value!\n");
         return 0;
     }
 

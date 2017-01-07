@@ -171,14 +171,17 @@ int main(int argc, char* argv[])
         {
             struct timespec buf;
             read(fds.fd, &buf, sizeof(buf));
-            printf("Received clock value: %ld.%ld\n", buf.tv_sec, buf.tv_nsec);
+            //printf("Received clock value: %ld.%ld\n", buf.tv_sec, buf.tv_nsec);
             for(int i = 0; i < numOfFifos; i++)
             {
                 if(fifos[i].isOpened)
                 {
                     int result = write(fifos[i].fileDescriptor, &buf, sizeof(buf));
                     if(result == -1 && errno == EAGAIN) //overflow
+                    {
                         close(fifos[i].fileDescriptor);
+                        return 0;
+                    }
                 }
             }
         }
