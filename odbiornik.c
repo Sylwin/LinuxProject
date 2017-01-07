@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
 
                 //printf("Received:   %ld.%.9ld\n", recSec, recNSec);
                 //printf("Current:    %ld.%.9ld\n", curSec, curNSec);
-                printf("Difference:         %ld.%.9ld\n\n", curSec-recSec, curNSec-recNSec);
+                printf("Reading from %s\nDifference:         %ld.%.9ld\n\n", fifo, curSec-recSec, curNSec-recNSec);
             }
             else
             {

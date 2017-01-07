@@ -80,7 +80,6 @@ int main(int argc, char* argv[])
         {
             printf("%s does not exist.\n", fifos[i].path);
             closed++;
-            printf("%d\n", closed);
             if( closed == numOfFifos )
                 return 0;
             continue;
@@ -89,7 +88,6 @@ int main(int argc, char* argv[])
         {
             printf("%s is not fifo.\n", fifos[i].path);
             closed++;
-            printf("%d\n", closed);
             if( closed == numOfFifos )
                 return 0;
             continue;
@@ -98,7 +96,6 @@ int main(int argc, char* argv[])
         {
             printf("%s is not open for reading\n", fifos[i].path);
             closed++;
-            printf("%d\n", closed);
             if( closed == numOfFifos )
                 return 0;
             continue;
@@ -118,9 +115,8 @@ int main(int argc, char* argv[])
             {
                 printf("failed\n");
                 closed++;
-                printf("%d\n", closed);
                 if( closed == numOfFifos )
-                return 0;
+                    return 0;
             }
             continue;
         }
@@ -149,7 +145,6 @@ int main(int argc, char* argv[])
                         close(fifos[i].fileDescriptor);
                         printf("%s closed because of overflow\n", fifos[i].path);
                         closed++;
-                        printf("%d\n", closed);
                     }
                 }
                 if( numOfFifos == closed )
