@@ -1,6 +1,4 @@
-# Powielanie wszystkich wpisów datowika do zadanych powielaczowi fifo
-
-rm -rf fifos
+rm -rf fifos logs
 bash createFifos.sh 5
 
-./datownik.o -m0.000002 -s1 | ./powielacz.o -pfifos/fifo -c4 -Llogs
+./datownik.o -m0.000001 -s1 | ./powielacz.o -pfifos/fifo -c4
