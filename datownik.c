@@ -61,6 +61,7 @@ int main(int argc, char* argv[])
     clockid_t clockType = -1;
     struct itimerspec workTime;
     float time = 0;
+    int check = 0;
     int opt;
 
     while ((opt = getopt(argc, argv, ":m:d:w:c:p:f:s:")) != -1)
@@ -75,18 +76,21 @@ int main(int argc, char* argv[])
             break;
         case 'w':
             clockType = CLOCK_REALTIME;
+            check += 1;
             time = strtof(optarg,NULL);
             workTime.it_value.tv_sec = floor(time);
             workTime.it_value.tv_nsec = (time - floor(time))*1000000000;
             break;
         case 'c':
             clockType = CLOCK_MONOTONIC;
+            check += 1;
             time = strtof(optarg,NULL);
             workTime.it_value.tv_sec = floor(time);
             workTime.it_value.tv_nsec = (time - floor(time))*1000000000;
             break;
         case 'p':
             clockType = CLOCK_PROCESS_CPUTIME_ID;
+            check += 1;
             time = strtof(optarg,NULL);
             workTime.it_value.tv_sec = floor(time);
             workTime.it_value.tv_nsec = (time - floor(time))*1000000000;
@@ -107,18 +111,6 @@ int main(int argc, char* argv[])
         }
     }
 
-   // for(int i = 0; i < numOfFifos; i++)
-   //     printf("fifo: %s\n", &fifos[i]);
-
-   // for(int i = 0; i < numOfFiles; i++)
-   //     printf("files: %d\n", files[i]);
-
-   // if(argc < 3)
-   // {
-   //     printf("Usage : %s -mFLOAT [-dFLOAT] [-w/c/pFLOAT] -fSTRING -sINT\n",argv[0]);
-   //     return 0;
-   // }
-
     if(avgInterval <= 0 || deviation < 0 || time < 0)
     {
         printf("Usage : %s -mFLOAT [-dFLOAT] [-w/c/pFLOAT] -fSTRING -sINT\n",argv[0]);
@@ -130,6 +122,16 @@ int main(int argc, char* argv[])
     if(deviation >= avgInterval)
     {
         printf("Deviation must be bigger than average value!\n");
+        return 0;
+    }
+    if( (numOfFifos + numOfFiles) == 0 )
+    {
+        printf("You must specify at least one option -f or -s\n");
+        return 0;
+    }
+    if( check > 1 )
+    {
+        printf("You can specify only one -w, -c or -p option\n");
         return 0;
     }
 
