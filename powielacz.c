@@ -17,15 +17,13 @@ struct Fifo
     char path[50];
     int fileDescriptor;
     bool isOpened;
-    bool isFull;
 };
 
 char filesNamePattern[20];
-char diagnosticPath[20];
+char diagnosticFile[20];
 int numOfFifos = 0;
 struct Fifo* fifos;
 int res;
-int d;
 
 void beginHandler(int sig)
 {
@@ -64,13 +62,6 @@ void beginHandler(int sig)
             }
             continue;
         }
-
-        if( fifos[i].isFull )
-        {
-            printf("%s buffer is full, closing.\n", fifos[i].path);
-            close(fifos[i].fileDescriptor);
-            break;
-        }
     }
 }
 
@@ -89,7 +80,7 @@ int main(int argc, char* argv[])
             numOfFifos = atoi(optarg);
             break;
         case 'L':
-            strcpy(diagnosticPath,optarg);
+            strcpy(diagnosticFile, optarg);
             break;
         case ':':
             fprintf(stderr, "%s: option '-%c' requires an argument\n", argv[0], optopt);
@@ -107,11 +98,11 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    if( strlen(diagnosticPath) != 0 )
+    if( strlen(diagnosticFile) != 0 )
     {
-        printf("stdout in '%s' file\n", diagnosticPath);
+        printf("Diagnostic information in '%s' file\n", diagnosticFile);
         //close(1);
-        int fw = open(diagnosticPath, O_WRONLY | O_CREAT, 0666);
+        int fw = open(diagnosticFile, O_WRONLY | O_CREAT, 0666);
         // replace standard output with output file
         if( dup2(fw, 1) == -1 )
             perror("dup");
@@ -119,52 +110,76 @@ int main(int argc, char* argv[])
 
     fifos = (struct Fifo*)malloc(numOfFifos * sizeof(struct Fifo));
 
-    for(int i = 0; i < numOfFifos+1;i++)
+    for(int i = 0; i < numOfFifos; i++)
     {
         sprintf(fifos[i].path,"%s%d",filesNamePattern,i + 1);
         fifos[i].isOpened = false;
-        fifos[i].isFull = false;
+
+//    struct sigaction sa;
+//    memset( &sa, 0, sizeof(sa));
+//    sa.sa_handler = &beginHandler;
+//    sigemptyset(&sa.sa_mask);
+//    if( (sigaction(SIGALRM, &sa, NULL)) == -1 )
+//        perror("sigaction");
+
+        struct stat sb;
+        if (stat(fifos[i].path, &sb) == -1)
+        {
+            printf("%s does not exist.\n", fifos[i].path);
+            continue;
+        }
+        if(!S_ISFIFO(sb.st_mode))
+        {
+            printf("%s is not fifo.\n", fifos[i].path);
+            continue;
+        }
+        else if(!(sb.st_mode & S_IROTH))
+        {
+            printf("%s is not open for reading\n", fifos[i].path);
+            continue;
+        }
+
+        if( !fifos[i].isOpened )
+        {
+            printf("%s ", fifos[i].path);
+            int fd = open(fifos[i].path, O_RDWR | O_NONBLOCK);
+            if(fd != -1)
+            {
+                printf("opened\n");
+                fifos[i].isOpened = true;
+                fifos[i].fileDescriptor = fd;
+            }
+            else
+            {
+                printf("failed\n");
+            }
+            continue;
+        }
     }
 
-    struct sigaction sa;
-    memset( &sa, 0, sizeof(sa));
-    sa.sa_handler = &beginHandler;
-    sigemptyset(&sa.sa_mask);
-    if( (sigaction(SIGALRM, &sa, NULL)) == -1 )
-        perror("sigaction");
-
     struct pollfd fds;
-    fds.fd = 0; //stdin
+    fds.fd = 0;         //stdin
     fds.events = POLLIN;
     fds.revents = 0;
 
-    raise(SIGALRM);
+//    raise(SIGALRM);
 
-   // int res;
     while(1)
     {
-       // raise(SIGALRM);
         res = poll(&fds,1,-1);          // -1 -> infinite timeout
         if(fds.revents & POLLIN)
         {
-            struct timespec buffer;
-            read(fds.fd,&buffer,sizeof(buffer));
-            printf("%ld.%ld\n", buffer.tv_sec, buffer.tv_nsec);
+            struct timespec buf;
+            read(fds.fd, &buf, sizeof(buf));
+            printf("Received clock value: %ld.%ld\n", buf.tv_sec, buf.tv_nsec);
             for(int i = 0; i < numOfFifos; i++)
             {
                 if(fifos[i].isOpened)
                 {
-                    int result = write(fifos[i].fileDescriptor, &buffer,sizeof(buffer));
-                    if(result == -1 && errno == EAGAIN)
-                    {
-                        fifos[i].isFull = true;
-                        close(fds.fd);
-                    }
+                    int result = write(fifos[i].fileDescriptor, &buf, sizeof(buf));
+                    if(result == -1 && errno == EAGAIN) //overflow
+                        close(fifos[i].fileDescriptor);
                 }
-              //  if(fifos[i].isFull)
-              //  {
-              //      close(fds.fd);
-              //  }
             }
         }
         else

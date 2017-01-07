@@ -14,26 +14,26 @@ float avgInterval = 0;
 float deviation = 0;
 timer_t intervalTimerId;
 timer_t workTimerId;
-struct itimerspec t2;
-struct timespec t3;
+struct itimerspec interval;
+struct timespec realTime;
 char* fifos[20];
 int numOfFifos = 0;
 int files[10];
 int numOfFiles = 0;
 int fd;
 
-void sigHandler(int signum)
+void sigHandler(int sig)
 {
-    //random value between: avarage-deviation and avgInterval+deviation
+    //random value between: avgInterval-deviation and avgInterval+deviation
     float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*(deviation+avgInterval);
 
-    t2.it_value.tv_sec = floor(timeInterval);
-    t2.it_value.tv_nsec = (timeInterval - floor(timeInterval))*1000000000;
+    interval.it_value.tv_sec = floor(timeInterval);
+    interval.it_value.tv_nsec = (timeInterval - floor(timeInterval))*1000000000;
 
-    if (timer_settime(intervalTimerId, 0, &t2, NULL) == -1)
+    if (timer_settime(intervalTimerId, 0, &interval, NULL) == -1)
         perror("timer_settime3");
 
-    clock_gettime(CLOCK_REALTIME, &t3);
+    clock_gettime(CLOCK_REALTIME, &realTime);
     if((numOfFifos > 0) || (numOfFiles > 0))
     {
         for(int i = 0 ; i < numOfFifos; i++)
@@ -41,16 +41,16 @@ void sigHandler(int signum)
             //mkfifo(&fifos[i], 0666);
             fd = open(&fifos[i], O_WRONLY | O_NONBLOCK);
 
-            clock_gettime(CLOCK_REALTIME,&t3);
-            write(fd, &t3, sizeof(t3));// == -1 )
+            clock_gettime(CLOCK_REALTIME,&realTime);
+            write(fd, &realTime, sizeof(realTime));// == -1 )
              //   perror("writing to fifo");
 
             close(fd);
         }
         for(int i = 0 ; i < numOfFiles; i++)
         {
-            write(files[i], &t3, sizeof(t3));// == -1 )
-             //   perror("writing to fifo");
+            write(files[i], &realTime, sizeof(realTime));// == -1 )
+             //   perror("writing to files");
         }
     }
 }
@@ -59,9 +59,8 @@ int main(int argc, char* argv[])
 {
     srand(time(NULL));
     clockid_t clockType = -1;
-    struct itimerspec t1;
+    struct itimerspec workTime;
     float time;
-
     int opt;
 
     while ((opt = getopt(argc, argv, ":m:d:w:c:p:f:s:")) != -1)
@@ -77,20 +76,20 @@ int main(int argc, char* argv[])
         case 'w':
             clockType = CLOCK_REALTIME;
             time = strtof(optarg,NULL);
-            t1.it_value.tv_sec = floor(time);
-            t1.it_value.tv_nsec = (time - floor(time))*1000000000;
+            workTime.it_value.tv_sec = floor(time);
+            workTime.it_value.tv_nsec = (time - floor(time))*1000000000;
             break;
         case 'c':
             clockType = CLOCK_MONOTONIC;
             time = strtof(optarg,NULL);
-            t1.it_value.tv_sec = floor(time);
-            t1.it_value.tv_nsec = (time - floor(time))*1000000000;
+            workTime.it_value.tv_sec = floor(time);
+            workTime.it_value.tv_nsec = (time - floor(time))*1000000000;
             break;
         case 'p':
             clockType = CLOCK_PROCESS_CPUTIME_ID;
             time = strtof(optarg,NULL);
-            t1.it_value.tv_sec = floor(time);
-            t1.it_value.tv_nsec = (time - floor(time))*1000000000;
+            workTime.it_value.tv_sec = floor(time);
+            workTime.it_value.tv_nsec = (time - floor(time))*1000000000;
             break;
         case 'f':
             strcpy(&fifos[numOfFifos++], optarg);
@@ -108,20 +107,23 @@ int main(int argc, char* argv[])
         }
     }
 
-    for(int i = 0; i < numOfFifos; i++)
-        printf("fifo: %s\n", &fifos[i]);
+   // for(int i = 0; i < numOfFifos; i++)
+   //     printf("fifo: %s\n", &fifos[i]);
 
-    for(int i = 0; i < numOfFiles; i++)
-        printf("files: %d\n", files[i]);
+   // for(int i = 0; i < numOfFiles; i++)
+   //     printf("files: %d\n", files[i]);
 
     if(argc < 3)
     {
-        printf("Usage : %s -m float [-d float] -w/c/p float -f string -s int\n",argv[0]);
+        printf("Usage : %s -mFLOAT [-dFLOAT] -w/c/pFLOAT -fSTRING -sINT\n",argv[0]);
         return 0;
     }
-    if(avgInterval < 0)
+    if(avgInterval < 0 || deviation < 0 || time < 0)
     {
-        printf("Usage : %s -m float [-d float] -w/c/p float -f string -s int\n-m option's value must be positive\n",argv[0]);
+        printf("Usage : %s -mFLOAT [-dFLOAT] -w/c/pFLOAT -fSTRING -sINT\n",argv[0]);
+        if(avgInterval < 0) printf("-m value must be positive\n");
+        if(deviation < 0 )  printf("-d value must be positive\n");
+        if(time < 0)        printf("-w/c/p value must be positive\n");
         return 0;
     }
 
@@ -143,21 +145,22 @@ int main(int argc, char* argv[])
         perror("timer_create1");
 
     float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*(deviation+avgInterval);
-    t2.it_value.tv_sec = floor(timeInterval);
-    t2.it_value.tv_nsec = (timeInterval - floor(timeInterval))*1000000000;
+    interval.it_value.tv_sec = floor(timeInterval);
+    interval.it_value.tv_nsec = (timeInterval - floor(timeInterval))*1000000000;
 
-    if (timer_settime(intervalTimerId, 0, &t2, NULL) == -1)
+    if (timer_settime(intervalTimerId, 0, &interval, NULL) == -1)
         perror("timer_settime1");
 
     if(clockType != -1)
     {
-        struct sigevent sevProgramEnd;
-        sevProgramEnd.sigev_notify = SIGEV_SIGNAL;
-        sevProgramEnd.sigev_signo = SIGKILL;
-        sevProgramEnd.sigev_value.sival_ptr = &workTimerId;
-        if (timer_create(clockType, &sevProgramEnd, &workTimerId) == -1)
+        struct sigevent endEvent;
+        memset(&endEvent, 0, sizeof(endEvent));
+        endEvent.sigev_notify = SIGEV_SIGNAL;
+        endEvent.sigev_signo = SIGKILL;
+        endEvent.sigev_value.sival_ptr = &workTimerId;
+        if (timer_create(clockType, &endEvent, &workTimerId) == -1)
             perror("timer_create2");
-        if (timer_settime(workTimerId, 0, &t1, NULL) == -1)
+        if (timer_settime(workTimerId, 0, &workTime, NULL) == -1)
             perror("timer_settime2");
     }
 
@@ -167,6 +170,5 @@ int main(int argc, char* argv[])
         pause();
     }
 
-    //close(fd);
     return 0;
 }
