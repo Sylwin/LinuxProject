@@ -1,6 +1,6 @@
 #include <fcntl.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -15,20 +15,18 @@ char fifo[20];
 int fd;
 timer_t timerId;
 float controlTime = 0;
-struct itimerspec t;
+struct itimerspec control;
 struct timespec currentLocalTime;
 
 void handler(int sig)
 {
-    t.it_value.tv_sec = floor(controlTime);
-    t.it_value.tv_nsec = (controlTime - floor(controlTime))*1000000000;
-    if (timer_settime(timerId, 0, &t, NULL) == -1)
+    control.it_value.tv_sec = floor(controlTime);
+    control.it_value.tv_nsec = (controlTime - floor(controlTime))*1000000000;
+    if (timer_settime(timerId, 0, &control, NULL) == -1)
         perror("timer_settime1");
 
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &currentLocalTime);
-    long curLocalTimeSec = currentLocalTime.tv_sec;
-    long curLocalTimeNSec = currentLocalTime.tv_nsec;
-    printf("I'm still working\nCurrent local time: %ld.%.9ld\n\n", curLocalTimeSec, curLocalTimeNSec);
+    printf("I'm still working\nCurrent local time: %ld.%.9ld\n\n", currentLocalTime.tv_sec, currentLocalTime.tv_nsec);
 }
 
 int main(int argc, char* argv[])
@@ -58,35 +56,38 @@ int main(int argc, char* argv[])
         return 0;
     }
 
+    if( controlTime < 0 )
+    {
+        printf("-d value must be positive\n");
+        return 0;
+    }
+
     strcpy(fifo, argv[optind]);
 
-    if(controlTime)
+    if(controlTime > 0)
     {
-        //register handler
         struct sigaction sa;
-        memset(&sa, 0, sizeof(sa));//struct sigaction));
+        memset(&sa, 0, sizeof(sa));
         sa.sa_handler = &handler;
-        sigemptyset(&sa.sa_mask);   //no signal would be blocked
+        sigemptyset(&sa.sa_mask);
         if (sigaction(SIGALRM, &sa, NULL) == -1)
             perror("sigaction");
 
-        //create timer
         struct sigevent se;
-        memset(&se, 0, sizeof(se));//struct sigevent));
+        memset(&se, 0, sizeof(se));
         se.sigev_notify = SIGEV_SIGNAL;
         se.sigev_signo = SIGALRM;
         se.sigev_value.sival_ptr = &timerId;
         if (timer_create(CLOCK_REALTIME, &se, &timerId) == -1)
             perror("timer_create");
 
-        //writingTimeToTimespec(controlTime, &t.it_value);
-        t.it_value.tv_sec = floor(controlTime);
-        t.it_value.tv_nsec = (controlTime - floor(controlTime))*1000000000;
-        if (timer_settime(timerId, 0, &t, NULL) == -1)
+        control.it_value.tv_sec = floor(controlTime);
+        control.it_value.tv_nsec = (controlTime - floor(controlTime))*1000000000;
+        if (timer_settime(timerId, 0, &control, NULL) == -1)
             perror("timer_settime1");
     }
 
-    int fd = open(fifo, O_RDWR); //O_RDONLY);
+    int fd = open(fifo, O_RDONLY);
 
     struct pollfd fs;
     fs.fd = fd;
@@ -97,14 +98,11 @@ int main(int argc, char* argv[])
 
     while(1)
     {
-        //pause();
         res = poll(&fs,1,0);
         if( res == 1)
         {
             if(fs.revents & POLLIN)
             {
-//              if((fdst.revents & POLLERR) || (fdst.revents & POLLNVAL))
-//                      break;
                 struct timespec buf;
                 struct timespec currentTime;
                 read(fs.fd, &buf, sizeof(buf));
@@ -115,8 +113,6 @@ int main(int argc, char* argv[])
                 long curSec = currentTime.tv_sec;
                 long curNSec = currentTime.tv_nsec;
 
-                //printf("Received:   %ld.%.9ld\n", recSec, recNSec);
-                //printf("Current:    %ld.%.9ld\n", curSec, curNSec);
                 printf("Reading from %s\nDifference:         %ld.%.9ld\n\n", fifo, curSec-recSec, curNSec-recNSec);
             }
             else
@@ -126,6 +122,7 @@ int main(int argc, char* argv[])
             }
         }
     }
+
     close(fd);
 
     return 0;

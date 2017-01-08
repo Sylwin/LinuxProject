@@ -1,30 +1,30 @@
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <fcntl.h>
 #include <stdio.h>
 #include <signal.h>
 #include <time.h>
-#include <string.h>
 #include <errno.h>
-#include <stdbool.h>
-#include <sys/stat.h>
-#include <sys/types.h>
+#include <string.h>
 #include <stdbool.h>
 #include <poll.h>
-
-struct Fifo
-{
-    char path[50];
-    int fileDescriptor;
-    bool isOpened;
-};
 
 char filesNamePattern[20];
 char diagnosticFile[20];
 int numOfFifos = 0;
-struct Fifo* fifos;
-int res;
 int closed = 0;
+int res;
+
+struct Fifo
+{
+    char path[20];
+    int fileDescriptor;
+    bool isOpened;
+};
+
+struct Fifo* fifos;
 
 int main(int argc, char* argv[])
 {
@@ -53,15 +53,24 @@ int main(int argc, char* argv[])
         }
     }
 
-    if(argc < 2 || numOfFifos < 1)
+    if(argc < 2)
     {
         printf("Usage : %s -p string -c int [-L string]\n", argv[0]);
         return 0;
     }
-
+    if( numOfFifos <= 0 )
+    {
+        printf("-c value must be positve\n");
+        return 0;
+    }
+    if( strlen(filesNamePattern) == 0 )
+    {
+        printf("You must specjify file name pattern (-p option)\n");
+        return 0;
+    }
     if( strlen(diagnosticFile) != 0 )
     {
-        printf("Diagnostic information in '%s' file\n", diagnosticFile);
+        printf("Diagnostic information in '%s' file\n\n", diagnosticFile);
         int fw = open(diagnosticFile, O_WRONLY | O_CREAT, 0666);
         // replace standard output with output file
         if( dup2(fw, 1) == -1 )
@@ -129,12 +138,11 @@ int main(int argc, char* argv[])
 
     while(1)
     {
-        res = poll(&fds,1,-1);          // -1 -> infinite timeout
+        res = poll(&fds,1,-1);
         if(fds.revents & POLLIN)
         {
             struct timespec buf;
             read(fds.fd, &buf, sizeof(buf));
-            //printf("Received clock value: %ld.%ld\n", buf.tv_sec, buf.tv_nsec);
             for(int i = 0; i < numOfFifos; i++)
             {
                 if(fifos[i].isOpened)
@@ -151,15 +159,9 @@ int main(int argc, char* argv[])
                     return 0;
             }
         }
-        else
-        {
-            if( (fds.revents & POLLNVAL) || (fds.revents & POLLERR ))
-                //break;
-                return 0;
-        }
+        else if( (fds.revents & POLLNVAL) || (fds.revents & POLLERR ))
+            break;
     }
-
-    free(fifos);
 
     return 0;
 }

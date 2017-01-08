@@ -1,14 +1,14 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
 #include <time.h>
 #include <math.h>
 #include <errno.h>
 #include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
 
 float avgInterval = 0;
 float deviation = 0;
@@ -38,19 +38,13 @@ void sigHandler(int sig)
     {
         for(int i = 0 ; i < numOfFifos; i++)
         {
-            //mkfifo(&fifos[i], 0666);
             fd = open(&fifos[i], O_WRONLY | O_NONBLOCK);
-
-            clock_gettime(CLOCK_REALTIME,&realTime);
-            write(fd, &realTime, sizeof(realTime));// == -1 )
-             //   perror("writing to fifo");
-
+            write(fd, &realTime, sizeof(realTime));
             close(fd);
         }
         for(int i = 0 ; i < numOfFiles; i++)
         {
-            write(files[i], &realTime, sizeof(realTime));// == -1 )
-             //   perror("writing to files");
+            write(files[i], &realTime, sizeof(realTime));
         }
     }
 }
@@ -124,7 +118,7 @@ int main(int argc, char* argv[])
         printf("Deviation must be bigger than average value!\n");
         return 0;
     }
-    if( (numOfFifos + numOfFiles) == 0 )
+    if( (numOfFifos+numOfFiles) == 0 )
     {
         printf("You must specify at least one option -f or -s\n");
         return 0;
@@ -135,7 +129,6 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    //register handler
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
     sa.sa_handler = &sigHandler;
@@ -143,7 +136,6 @@ int main(int argc, char* argv[])
     if (sigaction(SIGALRM, &sa, NULL) == -1)
         perror("sigaction");
 
-    //create timer
     struct sigevent se;
     memset(&se, 0, sizeof(se));
     se.sigev_notify = SIGEV_SIGNAL;
