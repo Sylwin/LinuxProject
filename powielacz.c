@@ -30,9 +30,9 @@ int main(int argc, char* argv[])
 {
     int opt;
 
-    while ((opt = getopt(argc, argv, ":p:c:L:")) != -1)
+    while( (opt = getopt(argc, argv, ":p:c:L:")) != -1 )
     {
-        switch (opt)
+        switch(opt)
         {
         case 'p':
             strcpy(filesNamePattern, optarg);
@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
 
     if(argc < 2)
     {
-        printf("Usage : %s -p string -c int [-L string]\n", argv[0]);
+        printf("Usage : %s -pSTRING -cINT [-LSTRING]\n", argv[0]);
         return 0;
     }
     if( numOfFifos <= 0 )
@@ -68,24 +68,24 @@ int main(int argc, char* argv[])
         printf("You must specjify file name pattern (-p option)\n");
         return 0;
     }
+
     if( strlen(diagnosticFile) != 0 )
     {
         printf("Diagnostic information in '%s' file\n\n", diagnosticFile);
         int fw = open(diagnosticFile, O_WRONLY | O_CREAT, 0666);
-        // replace standard output with output file
         if( dup2(fw, 1) == -1 )
             perror("dup");
     }
 
     fifos = (struct Fifo*)malloc(numOfFifos * sizeof(struct Fifo));
 
-    for(int i = 0; i < numOfFifos; i++)
+    for( int i = 0; i < numOfFifos; i++ )
     {
         sprintf(fifos[i].path,"%s%d",filesNamePattern,i + 1);
         fifos[i].isOpened = false;
 
         struct stat sb;
-        if (stat(fifos[i].path, &sb) == -1)
+        if( stat(fifos[i].path, &sb) == -1 )
         {
             printf("%s does not exist\n", fifos[i].path);
             closed++;
@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
                 return 0;
             continue;
         }
-        if(!S_ISFIFO(sb.st_mode))
+        if( !S_ISFIFO(sb.st_mode) )
         {
             printf("%s is not fifo\n", fifos[i].path);
             closed++;
@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
                 return 0;
             continue;
         }
-        else if(!(sb.st_mode & S_IROTH))
+        if( !(sb.st_mode & S_IROTH) )
         {
             printf("%s is not open for reading\n", fifos[i].path);
             closed++;
@@ -109,7 +109,6 @@ int main(int argc, char* argv[])
                 return 0;
             continue;
         }
-
         if( !fifos[i].isOpened )
         {
             printf("%s ", fifos[i].path);
@@ -131,35 +130,35 @@ int main(int argc, char* argv[])
         }
     }
 
-    struct pollfd fds;
-    fds.fd = 0;
-    fds.events = POLLIN;
-    fds.revents = 0;
+    struct pollfd fs;
+    fs.fd = 0;
+    fs.events = POLLIN;
+    fs.revents = 0;
 
     while(1)
     {
-        res = poll(&fds,1,-1);
-        if(fds.revents & POLLIN)
+        res = poll(&fs,1,-1);
+        if(fs.revents & POLLIN)
         {
             struct timespec buf;
-            read(fds.fd, &buf, sizeof(buf));
-            for(int i = 0; i < numOfFifos; i++)
+            read(fs.fd, &buf, sizeof(buf));
+            for( int i = 0; i < numOfFifos; i++ )
             {
-                if(fifos[i].isOpened)
+                if( fifos[i].isOpened )
                 {
                     int result = write(fifos[i].fileDescriptor, &buf, sizeof(buf));
-                    if(result == -1 && errno == EAGAIN) //overflow
+                    if( result == -1 && errno == EAGAIN ) //overflow
                     {
                         close(fifos[i].fileDescriptor);
                         printf("%s closed because of overflow\n", fifos[i].path);
                         closed++;
+                        if( closed == numOfFifos )
+                            return 0;
                     }
                 }
-                if( numOfFifos == closed )
-                    return 0;
             }
         }
-        else if( (fds.revents & POLLNVAL) || (fds.revents & POLLERR ))
+        else if( (fs.revents & POLLNVAL) || (fs.revents & POLLERR ))
             break;
     }
 

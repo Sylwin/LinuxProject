@@ -13,16 +13,17 @@
 
 char fifo[20];
 int fd;
-timer_t timerId;
+timer_t controlTimerId;
 float controlTime = 0;
 struct itimerspec control;
 struct timespec currentLocalTime;
+int res;
 
 void handler(int sig)
 {
     control.it_value.tv_sec = floor(controlTime);
     control.it_value.tv_nsec = (controlTime - floor(controlTime))*1000000000;
-    if (timer_settime(timerId, 0, &control, NULL) == -1)
+    if( timer_settime(controlTimerId, 0, &control, NULL) == -1 )
         perror("timer_settime1");
 
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &currentLocalTime);
@@ -33,9 +34,9 @@ int main(int argc, char* argv[])
 {
     int opt;
 
-    while ((opt = getopt(argc, argv, ":d:")) != -1)
+    while( (opt = getopt(argc, argv, ":d:")) != -1 )
     {
-        switch (opt)
+        switch(opt)
         {
         case 'd':
             controlTime = strtof(optarg, NULL);
@@ -50,12 +51,11 @@ int main(int argc, char* argv[])
         }
     }
 
-    if(argc<2)
+    if( argc < 2 )
     {
-        printf("Usage: %s [-d float] path\n", argv[0]);
+        printf("Usage: %s [-dFLOAT] path\n", argv[0]);
         return 0;
     }
-
     if( controlTime < 0 )
     {
         printf("-d value must be positive\n");
@@ -64,26 +64,26 @@ int main(int argc, char* argv[])
 
     strcpy(fifo, argv[optind]);
 
-    if(controlTime > 0)
+    if( controlTime > 0 )
     {
         struct sigaction sa;
         memset(&sa, 0, sizeof(sa));
         sa.sa_handler = &handler;
         sigemptyset(&sa.sa_mask);
-        if (sigaction(SIGALRM, &sa, NULL) == -1)
+        if( sigaction(SIGALRM, &sa, NULL) == -1 )
             perror("sigaction");
 
         struct sigevent se;
         memset(&se, 0, sizeof(se));
         se.sigev_notify = SIGEV_SIGNAL;
         se.sigev_signo = SIGALRM;
-        se.sigev_value.sival_ptr = &timerId;
-        if (timer_create(CLOCK_REALTIME, &se, &timerId) == -1)
+        se.sigev_value.sival_ptr = &controlTimerId;
+        if( timer_create(CLOCK_REALTIME, &se, &controlTimerId) == -1 )
             perror("timer_create");
 
         control.it_value.tv_sec = floor(controlTime);
         control.it_value.tv_nsec = (controlTime - floor(controlTime))*1000000000;
-        if (timer_settime(timerId, 0, &control, NULL) == -1)
+        if( timer_settime(controlTimerId, 0, &control, NULL) == -1 )
             perror("timer_settime1");
     }
 
@@ -93,8 +93,6 @@ int main(int argc, char* argv[])
     fs.fd = fd;
     fs.events = POLLIN;
     fs.revents = 0;
-
-    int res;
 
     while(1)
     {
@@ -113,13 +111,10 @@ int main(int argc, char* argv[])
                 long curSec = currentTime.tv_sec;
                 long curNSec = currentTime.tv_nsec;
 
-                printf("Reading from %s\nDifference:         %ld.%.9ld\n\n", fifo, curSec-recSec, curNSec-recNSec);
+                printf("Reading from: %s\nDifference:         %ld.%.9ld\n\n", fifo, curSec-recSec, curNSec-recNSec);
             }
-            else
-            {
-                if( fs.revents & POLLNVAL )
-                    break;
-            }
+            else if( (fs.revents & POLLNVAL) || (fs.revents & POLLERR) )
+                break;
         }
     }
 

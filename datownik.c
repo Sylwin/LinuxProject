@@ -30,11 +30,11 @@ void sigHandler(int sig)
     interval.it_value.tv_sec = floor(timeInterval);
     interval.it_value.tv_nsec = (timeInterval - floor(timeInterval))*1000000000;
 
-    if (timer_settime(intervalTimerId, 0, &interval, NULL) == -1)
+    if( timer_settime(intervalTimerId, 0, &interval, NULL) == -1 )
         perror("timer_settime3");
 
     clock_gettime(CLOCK_REALTIME, &realTime);
-    if((numOfFifos > 0) || (numOfFiles > 0))
+    if( (numOfFifos > 0) || (numOfFiles > 0) )
     {
         for(int i = 0 ; i < numOfFifos; i++)
         {
@@ -58,9 +58,9 @@ int main(int argc, char* argv[])
     int check = 0;
     int opt;
 
-    while ((opt = getopt(argc, argv, ":m:d:w:c:p:f:s:")) != -1)
+    while( (opt = getopt(argc, argv, ":m:d:w:c:p:f:s:")) != -1 )
     {
-        switch (opt)
+        switch(opt)
         {
         case 'm':
             avgInterval = strtof(optarg,NULL);
@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    if(avgInterval <= 0 || deviation < 0 || time < 0)
+    if( avgInterval <= 0 || deviation < 0 || time < 0 )
     {
         printf("Usage : %s -mFLOAT [-dFLOAT] [-w/c/pFLOAT] -fSTRING -sINT\n",argv[0]);
         if(avgInterval < 0) printf("-m value must be positive\n");
@@ -113,9 +113,9 @@ int main(int argc, char* argv[])
         if(time < 0)        printf("-w/c/p value must be positive\n");
         return 0;
     }
-    if(deviation >= avgInterval)
+    if( deviation >= avgInterval )
     {
-        printf("Deviation must be bigger than average value!\n");
+        printf("Deviation must be smaller than average value!\n");
         return 0;
     }
     if( (numOfFifos+numOfFiles) == 0 )
@@ -132,8 +132,8 @@ int main(int argc, char* argv[])
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
     sa.sa_handler = &sigHandler;
-    sigemptyset(&sa.sa_mask);   //no signal would be blocked
-    if (sigaction(SIGALRM, &sa, NULL) == -1)
+    sigemptyset(&sa.sa_mask);
+    if( sigaction(SIGALRM, &sa, NULL) == -1 )
         perror("sigaction");
 
     struct sigevent se;
@@ -141,26 +141,26 @@ int main(int argc, char* argv[])
     se.sigev_notify = SIGEV_SIGNAL;
     se.sigev_signo = SIGALRM;
     se.sigev_value.sival_ptr = &intervalTimerId;
-    if (timer_create(CLOCK_REALTIME, &se, &intervalTimerId) == -1)
+    if( timer_create(CLOCK_REALTIME, &se, &intervalTimerId) == -1 )
         perror("timer_create1");
 
     float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*(deviation+avgInterval);
     interval.it_value.tv_sec = floor(timeInterval);
     interval.it_value.tv_nsec = (timeInterval - floor(timeInterval))*1000000000;
 
-    if (timer_settime(intervalTimerId, 0, &interval, NULL) == -1)
+    if( timer_settime(intervalTimerId, 0, &interval, NULL) == -1 )
         perror("timer_settime1");
 
-    if(clockType != -1)
+    if( clockType != -1 )
     {
         struct sigevent endEvent;
         memset(&endEvent, 0, sizeof(endEvent));
         endEvent.sigev_notify = SIGEV_SIGNAL;
         endEvent.sigev_signo = SIGKILL;
         endEvent.sigev_value.sival_ptr = &workTimerId;
-        if (timer_create(clockType, &endEvent, &workTimerId) == -1)
+        if( timer_create(clockType, &endEvent, &workTimerId) == -1 )
             perror("timer_create2");
-        if (timer_settime(workTimerId, 0, &workTime, NULL) == -1)
+        if( timer_settime(workTimerId, 0, &workTime, NULL) == -1 )
             perror("timer_settime2");
     }
 
