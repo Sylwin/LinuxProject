@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
             strcpy(filesNamePattern, optarg);
             break;
         case 'c':
-            numOfFifos = atoi(optarg);
+            numOfFifos = strtol(optarg, NULL, 10);
             break;
         case 'L':
             strcpy(diagnosticFile, optarg);

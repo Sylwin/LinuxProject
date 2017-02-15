@@ -21,8 +21,8 @@ int res;
 
 void handler(int sig)
 {
-    control.it_value.tv_sec = floor(controlTime);
-    control.it_value.tv_nsec = (controlTime - floor(controlTime))*1000000000;
+    control.it_value.tv_sec = (int)controlTime;
+    control.it_value.tv_nsec = (controlTime - (int)controlTime)*1000000000;
     if( timer_settime(controlTimerId, 0, &control, NULL) == -1 )
         perror("timer_settime1");
 
@@ -64,6 +64,8 @@ int main(int argc, char* argv[])
 
     strcpy(fifo, argv[optind]);
 
+    if(fifo[0] == "/") perror("path");
+
     if( controlTime > 0 )
     {
         struct sigaction sa;
@@ -81,8 +83,8 @@ int main(int argc, char* argv[])
         if( timer_create(CLOCK_REALTIME, &se, &controlTimerId) == -1 )
             perror("timer_create");
 
-        control.it_value.tv_sec = floor(controlTime);
-        control.it_value.tv_nsec = (controlTime - floor(controlTime))*1000000000;
+        control.it_value.tv_sec = (int)controlTime;
+        control.it_value.tv_nsec = (controlTime - (int)controlTime)*1000000000;
         if( timer_settime(controlTimerId, 0, &control, NULL) == -1 )
             perror("timer_settime1");
     }
@@ -96,7 +98,7 @@ int main(int argc, char* argv[])
 
     while(1)
     {
-        res = poll(&fs,1,0);
+        res = poll(&fs,1,-1);
         if( res == 1)
         {
             if(fs.revents & POLLIN)

@@ -21,24 +21,44 @@ int numOfFifos = 0;
 int files[10];
 int numOfFiles = 0;
 int fd;
+char raport[40];
 
 void sigHandler(int sig)
 {
     //random value between: avgInterval-deviation and avgInterval+deviation
-    float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*(deviation+avgInterval);
-
-    interval.it_value.tv_sec = floor(timeInterval);
-    interval.it_value.tv_nsec = (timeInterval - floor(timeInterval))*1000000000;
+    if(deviation == 0)
+    {
+        interval.it_value.tv_sec = (int)avgInterval;
+        interval.it_value.tv_nsec = (avgInterval - (int)avgInterval)*1000000000;
+    }
+    else
+    {
+        float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*(deviation+avgInterval);
+        interval.it_value.tv_sec = (int)timeInterval;
+        interval.it_value.tv_nsec = (timeInterval - (int)timeInterval)*1000000000;
+    }
 
     if( timer_settime(intervalTimerId, 0, &interval, NULL) == -1 )
         perror("timer_settime3");
 
     clock_gettime(CLOCK_REALTIME, &realTime);
+    long sec = realTime.tv_sec;
+    long nsec = realTime.tv_nsec;
+
+    FILE *f = fopen("stempleDatownika", "a");
+    if( f == NULL )
+    {
+        printf("error opening file");
+        exit(1);
+    }
+    fprintf(f,"%ld %ld\n",sec, nsec);
+    fclose(f);
+
     if( (numOfFifos > 0) || (numOfFiles > 0) )
     {
         for(int i = 0 ; i < numOfFifos; i++)
         {
-            fd = open(&fifos[i], O_WRONLY | O_NONBLOCK);
+            fd = open(&fifos[i], O_WRONLY);// | O_NONBLOCK);
             write(fd, &realTime, sizeof(realTime));
             close(fd);
         }
@@ -72,28 +92,31 @@ int main(int argc, char* argv[])
             clockType = CLOCK_REALTIME;
             check += 1;
             time = strtof(optarg,NULL);
-            workTime.it_value.tv_sec = floor(time);
-            workTime.it_value.tv_nsec = (time - floor(time))*1000000000;
+            memset(&workTime, 0, sizeof(workTime));
+            workTime.it_value.tv_sec = (int)time;
+            workTime.it_value.tv_nsec = (time - (int)time)*1000000000;
             break;
         case 'c':
             clockType = CLOCK_MONOTONIC;
             check += 1;
             time = strtof(optarg,NULL);
-            workTime.it_value.tv_sec = floor(time);
-            workTime.it_value.tv_nsec = (time - floor(time))*1000000000;
+            memset(&workTime, 0, sizeof(workTime));
+            workTime.it_value.tv_sec = (int)time;
+            workTime.it_value.tv_nsec = (time - (int)time)*1000000000;
             break;
         case 'p':
             clockType = CLOCK_PROCESS_CPUTIME_ID;
             check += 1;
             time = strtof(optarg,NULL);
-            workTime.it_value.tv_sec = floor(time);
-            workTime.it_value.tv_nsec = (time - floor(time))*1000000000;
+            memset(&workTime, 0, sizeof(workTime));
+            workTime.it_value.tv_sec = (int)time;
+            workTime.it_value.tv_nsec = (time - (int)time)*1000000000;
             break;
         case 'f':
             strcpy(&fifos[numOfFifos++], optarg);
             break;
         case 's':
-            files[numOfFiles++] = atoi(optarg);
+            files[numOfFiles++] = strtol(optarg, NULL, 10);
             break;
         case ':':
             fprintf(stderr, "%s: option '-%c' requires an argument\n", argv[0], optopt);
@@ -128,6 +151,10 @@ int main(int argc, char* argv[])
         printf("You can specify only one -w, -c or -p option\n");
         return 0;
     }
+    //clear file
+    FILE *f = fopen("stempleDatownika", "w");
+    if( f == NULL )
+        perror("Open file");
 
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
@@ -144,12 +171,25 @@ int main(int argc, char* argv[])
     if( timer_create(CLOCK_REALTIME, &se, &intervalTimerId) == -1 )
         perror("timer_create1");
 
-    float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*(deviation+avgInterval);
-    interval.it_value.tv_sec = floor(timeInterval);
-    interval.it_value.tv_nsec = (timeInterval - floor(timeInterval))*1000000000;
+    if(deviation == 0)
+    {
+        interval.it_value.tv_sec = (int)avgInterval;
+        interval.it_value.tv_nsec = (avgInterval - (int)avgInterval)*1000000000; 
+    }
+    else
+    {
+        float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*(deviation+avgInterval);
+        interval.it_value.tv_sec = (int)timeInterval;
+        interval.it_value.tv_nsec = (timeInterval - (int)timeInterval)*1000000000;
+    }
 
     if( timer_settime(intervalTimerId, 0, &interval, NULL) == -1 )
         perror("timer_settime1");
+
+    if((workTime.it_value.tv_sec == 0) && (workTime.it_value.tv_nsec == 0))
+    {
+        raise(SIGKILL);
+    }
 
     if( clockType != -1 )
     {
