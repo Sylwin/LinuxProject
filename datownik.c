@@ -26,7 +26,7 @@ char raport[40];
 void sigHandler(int sig)
 {
     //random value between: avgInterval-deviation and avgInterval+deviation
-    if(deviation == 0)
+    if( deviation == 0 )
     {
         interval.it_value.tv_sec = (int)avgInterval;
         interval.it_value.tv_nsec = (avgInterval - (int)avgInterval)*1000000000;
@@ -58,9 +58,8 @@ void sigHandler(int sig)
     {
         for(int i = 0 ; i < numOfFifos; i++)
         {
-            fd = open(&fifos[i], O_WRONLY);// | O_NONBLOCK);
+            fd = open(&fifos[i], O_RDWR | O_NONBLOCK);
             write(fd, &realTime, sizeof(realTime));
-            close(fd);
         }
         for(int i = 0 ; i < numOfFiles; i++)
         {
@@ -151,10 +150,11 @@ int main(int argc, char* argv[])
         printf("You can specify only one -w, -c or -p option\n");
         return 0;
     }
-    //clear file
+
+    if( (workTime.it_value.tv_sec == 0) && (workTime.it_value.tv_nsec == 0) )
+        raise(SIGKILL);
+
     FILE *f = fopen("stempleDatownika", "w");
-    if( f == NULL )
-        perror("Open file");
 
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
@@ -171,10 +171,10 @@ int main(int argc, char* argv[])
     if( timer_create(CLOCK_REALTIME, &se, &intervalTimerId) == -1 )
         perror("timer_create1");
 
-    if(deviation == 0)
+    if( deviation == 0 )
     {
         interval.it_value.tv_sec = (int)avgInterval;
-        interval.it_value.tv_nsec = (avgInterval - (int)avgInterval)*1000000000; 
+        interval.it_value.tv_nsec = (avgInterval - (int)avgInterval)*1000000000;
     }
     else
     {
@@ -185,11 +185,6 @@ int main(int argc, char* argv[])
 
     if( timer_settime(intervalTimerId, 0, &interval, NULL) == -1 )
         perror("timer_settime1");
-
-    if((workTime.it_value.tv_sec == 0) && (workTime.it_value.tv_nsec == 0))
-    {
-        raise(SIGKILL);
-    }
 
     if( clockType != -1 )
     {

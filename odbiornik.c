@@ -64,8 +64,6 @@ int main(int argc, char* argv[])
 
     strcpy(fifo, argv[optind]);
 
-    if(fifo[0] == "/") perror("path");
-
     if( controlTime > 0 )
     {
         struct sigaction sa;
@@ -88,6 +86,7 @@ int main(int argc, char* argv[])
         if( timer_settime(controlTimerId, 0, &control, NULL) == -1 )
             perror("timer_settime1");
     }
+
 
     int fd = open(fifo, O_RDONLY);
 
@@ -115,7 +114,9 @@ int main(int argc, char* argv[])
 
                 printf("Reading from: %s\nDifference:         %ld.%.9ld\n\n", fifo, curSec-recSec, curNSec-recNSec);
             }
-            else if( (fs.revents & POLLNVAL) || (fs.revents & POLLERR) )
+            else if( fs.revents & POLLHUP )
+                close(fd);
+            else if( (fs.revents & POLLNVAL) || (fs.revents & POLLERR))
                 break;
         }
     }
