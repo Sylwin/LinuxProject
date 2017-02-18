@@ -27,7 +27,7 @@ void handler(int sig)
         perror("timer_settime1");
 
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &currentLocalTime);
-    printf("I'm still working\nCurrent local time: %ld.%.9ld\n\n", currentLocalTime.tv_sec, currentLocalTime.tv_nsec);
+    printf("I'm still working\nCurrent local time: %ld.%ld\n\n", currentLocalTime.tv_sec, currentLocalTime.tv_nsec);
 }
 
 int main(int argc, char* argv[])
@@ -64,6 +64,8 @@ int main(int argc, char* argv[])
 
     strcpy(fifo, argv[optind]);
 
+    printf("%s\n", fifo);
+
     if( controlTime > 0 )
     {
         struct sigaction sa;
@@ -83,6 +85,7 @@ int main(int argc, char* argv[])
 
         control.it_value.tv_sec = (int)controlTime;
         control.it_value.tv_nsec = (controlTime - (int)controlTime)*1000000000;
+       // printf("%d %d\n", (int)control.it_value.tv_sec, (int)control.it_value.tv_nsec);
         if( timer_settime(controlTimerId, 0, &control, NULL) == -1 )
             perror("timer_settime1");
     }
@@ -122,6 +125,5 @@ int main(int argc, char* argv[])
     }
 
     close(fd);
-
     return 0;
 }

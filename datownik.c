@@ -21,7 +21,6 @@ int numOfFifos = 0;
 int files[10];
 int numOfFiles = 0;
 int fd;
-char raport[40];
 
 void sigHandler(int sig)
 {
@@ -59,6 +58,7 @@ void sigHandler(int sig)
         for(int i = 0 ; i < numOfFifos; i++)
         {
             fd = open(&fifos[i], O_RDWR | O_NONBLOCK);
+            //printf("%s\n", &fifos[i]);
             write(fd, &realTime, sizeof(realTime));
         }
         for(int i = 0 ; i < numOfFiles; i++)
@@ -152,6 +152,7 @@ int main(int argc, char* argv[])
     }
 
     if( (workTime.it_value.tv_sec == 0) && (workTime.it_value.tv_nsec == 0) )
+        //return 0;
         raise(SIGKILL);
 
     FILE *f = fopen("stempleDatownika", "w");
