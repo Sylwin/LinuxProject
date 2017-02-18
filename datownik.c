@@ -49,7 +49,6 @@ void sigHandler(int sig)
         for(int i = 0 ; i < numOfFifos; i++)
         {
             fd = open(&fifos[i], O_RDWR | O_NONBLOCK);
-            //printf("%s\n", &fifos[i]);
             write(fd, &realTime, sizeof(realTime));
         }
         for(int i = 0 ; i < numOfFiles; i++)

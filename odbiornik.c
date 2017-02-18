@@ -64,8 +64,6 @@ int main(int argc, char* argv[])
 
     strcpy(fifo, argv[optind]);
 
-    printf("%s\n", fifo);
-
     if( controlTime > 0 )
     {
         struct sigaction sa;
@@ -112,7 +110,7 @@ int main(int argc, char* argv[])
             long curSec = currentTime.tv_sec;
             long curNSec = currentTime.tv_nsec;
 
-            printf("Reading from: %s\nDifference:         %ld.%.9ld\n\n", fifo, curSec-recSec, curNSec-recNSec);
+            printf("Reading from: %s Difference: %ld.%.9ld\n\n", fifo, curSec-recSec, curNSec-recNSec);
         }
         else if( (fs.revents & POLLNVAL) || (fs.revents & POLLERR))
             break;
