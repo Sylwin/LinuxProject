@@ -85,13 +85,12 @@ int main(int argc, char* argv[])
 
         control.it_value.tv_sec = (int)controlTime;
         control.it_value.tv_nsec = (controlTime - (int)controlTime)*1000000000;
-       // printf("%d %d\n", (int)control.it_value.tv_sec, (int)control.it_value.tv_nsec);
         if( timer_settime(controlTimerId, 0, &control, NULL) == -1 )
             perror("timer_settime1");
     }
 
 
-    int fd = open(fifo, O_RDONLY);
+    fd = open(fifo, O_RDWR);
 
     struct pollfd fs;
     fs.fd = fd;
@@ -101,27 +100,22 @@ int main(int argc, char* argv[])
     while(1)
     {
         res = poll(&fs,1,-1);
-        if( res == 1)
+        if(fs.revents & POLLIN)
         {
-            if(fs.revents & POLLIN)
-            {
-                struct timespec buf;
-                struct timespec currentTime;
-                read(fs.fd, &buf, sizeof(buf));
-                long recSec = buf.tv_sec;
-                long recNSec = buf.tv_nsec;
+            struct timespec buf;
+            struct timespec currentTime;
+            read(fs.fd, &buf, sizeof(buf));
+            long recSec = buf.tv_sec;
+            long recNSec = buf.tv_nsec;
 
-                clock_gettime(CLOCK_REALTIME,&currentTime);
-                long curSec = currentTime.tv_sec;
-                long curNSec = currentTime.tv_nsec;
+            clock_gettime(CLOCK_REALTIME,&currentTime);
+            long curSec = currentTime.tv_sec;
+            long curNSec = currentTime.tv_nsec;
 
-                printf("Reading from: %s\nDifference:         %ld.%.9ld\n\n", fifo, curSec-recSec, curNSec-recNSec);
-            }
-            else if( fs.revents & POLLHUP )
-                close(fd);
-            else if( (fs.revents & POLLNVAL) || (fs.revents & POLLERR))
-                break;
+            printf("Reading from: %s\nDifference:         %ld.%.9ld\n\n", fifo, curSec-recSec, curNSec-recNSec);
         }
+        else if( (fs.revents & POLLNVAL) || (fs.revents & POLLERR))
+            break;
     }
 
     close(fd);

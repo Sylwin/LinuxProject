@@ -24,18 +24,9 @@ int fd;
 
 void sigHandler(int sig)
 {
-    //random value between: avgInterval-deviation and avgInterval+deviation
-    if( deviation == 0 )
-    {
-        interval.it_value.tv_sec = (int)avgInterval;
-        interval.it_value.tv_nsec = (avgInterval - (int)avgInterval)*1000000000;
-    }
-    else
-    {
-        float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*(deviation+avgInterval);
-        interval.it_value.tv_sec = (int)timeInterval;
-        interval.it_value.tv_nsec = (timeInterval - (int)timeInterval)*1000000000;
-    }
+    float timeInterval = avgInterval+(1.0*rand()/RAND_MAX)*deviation*2-deviation;
+    interval.it_value.tv_sec = (int)timeInterval;
+    interval.it_value.tv_nsec = (timeInterval - (int)timeInterval)*1000000000;
 
     if( timer_settime(intervalTimerId, 0, &interval, NULL) == -1 )
         perror("timer_settime3");
@@ -172,17 +163,9 @@ int main(int argc, char* argv[])
     if( timer_create(CLOCK_REALTIME, &se, &intervalTimerId) == -1 )
         perror("timer_create1");
 
-    if( deviation == 0 )
-    {
-        interval.it_value.tv_sec = (int)avgInterval;
-        interval.it_value.tv_nsec = (avgInterval - (int)avgInterval)*1000000000;
-    }
-    else
-    {
-        float timeInterval = avgInterval-deviation+(rand()/(RAND_MAX+1.0))*(deviation+avgInterval);
-        interval.it_value.tv_sec = (int)timeInterval;
-        interval.it_value.tv_nsec = (timeInterval - (int)timeInterval)*1000000000;
-    }
+    float timeInterval = avgInterval+(1.0*rand()/RAND_MAX)*deviation*2-deviation;
+    interval.it_value.tv_sec = (int)timeInterval;
+    interval.it_value.tv_nsec = (timeInterval - (int)timeInterval)*1000000000;
 
     if( timer_settime(intervalTimerId, 0, &interval, NULL) == -1 )
         perror("timer_settime1");
